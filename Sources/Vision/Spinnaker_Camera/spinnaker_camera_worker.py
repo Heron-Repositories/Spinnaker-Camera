@@ -16,6 +16,7 @@ from Heron.Operations.Sources.Vision.Spinnaker_Camera import spinnaker_camera_co
 from Heron.communication.source_worker import SourceWorker
 from Heron.gui.visualisation import Visualisation
 import datetime
+import copy
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -194,21 +195,49 @@ def grab_frame():
     try:
         image_result = cam.GetNextImage(1000)
 
+        frame_id = image_result.GetFrameID()
+        timestamp = image_result.GetTimeStamp()
+
         #  Ensure image completion
         if image_result.IsIncomplete():
+            image = None
             print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
         else:
             # Getting the image data as a numpy array and change it to an RGB format
             image_data = image_result.GetNDArray()
-            #image_data = cv2.cvtColor(image_data, cv2.COLOR_BAYER_RG2RGB)
+            #height, width = image_result.GetNDArray().shape
+            #image = image_result.GetData().reshape(height, width)
+            #image_data = cv2.cvtColor(image, cv2.COLOR_BayerRG2RGB)
         image_result.Release()
 
     except PySpin.SpinnakerException as ex:
         print('Error capturing frame from Spinnaker camera: {}'.format(ex))
-        return None
+        return None, None, None
 
-    return image_data
+    return image_data, frame_id, float(timestamp / 1e6)
 
+'''
+def int_to_base256(integer):
+
+    result = [integer % 256]
+    integer = int(integer / 256)
+    while integer > 256:
+        result.append(integer % 256)
+        integer = int(integer/256)
+    if integer > 0:
+        result.append(integer)
+    return result
+
+
+def mark_frame_with_id(frame, frame_id: int):
+
+    base256_id = int_to_base256(frame_id)
+    number_of_pixels = len(base256_id)
+    frame[0, 0] = number_of_pixels
+    frame[0, 1: number_of_pixels + 1] = base256_id
+
+    return frame
+'''
 
 def new_visualisation(vis_object):
 
@@ -266,6 +295,8 @@ def run_spinnaker_camera(_worker_object):
     if not setup_camera_and_start_acquisition(cam_index, trigger, pixel_format, fps):
         acquiring_on = False
 
+    worker_object.num_of_iters_to_update_relics_substate = -1  # That means the pandasdf info gets saved only at the
+    # death of the process
     worker_object.relic_create_parameters_df(visualisation_on=vis.visualisation_on,
                                              camera_index=cam_index, trigger_mode=trigger,
                                              pixel_format=pixel_format, fps=fps)
@@ -273,15 +304,18 @@ def run_spinnaker_camera(_worker_object):
 
     # The infinite loop that does the frame capture and push to the output of the node
     while acquiring_on:
-        data = grab_frame()
+        data, frame_id, timestamp = grab_frame()
         if data is not None:
             if frame_counter == 1:
                 start_time = datetime.datetime.now()
 
             worker_object.send_data_to_com(data)
+
             frame_counter += 1
             if vis.visualisation_on:
                 vis.visualised_data = data
+
+            worker_object.relic_update_substate_df(frame_id=frame_id, time_stamp=timestamp)
 
         try:
             vis.visualisation_on = worker_object.parameters[0]
