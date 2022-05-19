@@ -16,7 +16,6 @@ from Heron.Operations.Sources.Vision.Spinnaker_Camera import spinnaker_camera_co
 from Heron.communication.source_worker import SourceWorker
 from Heron.gui.visualisation import Visualisation
 import datetime
-import copy
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -295,8 +294,7 @@ def run_spinnaker_camera(_worker_object):
     if not setup_camera_and_start_acquisition(cam_index, trigger, pixel_format, fps):
         acquiring_on = False
 
-    worker_object.num_of_iters_to_update_relics_substate = -1  # That means the pandasdf info gets saved only at the
-    # death of the process
+    worker_object.num_of_iters_to_update_relics_substate = 120*3600/2  # That means the pandasdf info gets saved every half an hour
     worker_object.relic_create_parameters_df(visualisation_on=vis.visualisation_on,
                                              camera_index=cam_index, trigger_mode=trigger,
                                              pixel_format=pixel_format, fps=fps)
