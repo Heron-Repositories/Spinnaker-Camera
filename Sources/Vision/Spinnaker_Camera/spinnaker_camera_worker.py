@@ -34,6 +34,7 @@ sNodemap = None
 
 start_time: datetime.datetime
 frame_counter = 0
+previous_frame_id = -1
 
 
 def setup_camera_and_start_acquisition(camera_index, trigger, pixel_format, fps):
@@ -270,6 +271,7 @@ def run_spinnaker_camera(_worker_object):
     global vis
     global start_time
     global frame_counter
+    global previous_frame_id
 
     worker_object = _worker_object
     vis = Visualisation(worker_object.node_name, worker_object.node_index)
@@ -303,7 +305,8 @@ def run_spinnaker_camera(_worker_object):
     # The infinite loop that does the frame capture and push to the output of the node
     while acquiring_on:
         data, frame_id, timestamp = grab_frame()
-        if data is not None:
+        if data is not None and previous_frame_id != frame_id:
+            previous_frame_id = frame_id
             if frame_counter == 1:
                 start_time = datetime.datetime.now()
 
