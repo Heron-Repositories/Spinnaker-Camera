@@ -10,6 +10,7 @@ sys.path.insert(0, path.dirname(current_dir))
 
 import PySpin
 from PySpin.PySpin import CameraPtr
+
 import cv2 as cv2
 from Heron import general_utils as gu
 from Heron.Operations.Sources.Vision.Spinnaker_Camera import spinnaker_camera_com
@@ -296,8 +297,8 @@ def run_spinnaker_camera(_worker_object):
     if not setup_camera_and_start_acquisition(cam_index, trigger, pixel_format, fps):
         acquiring_on = False
 
-    worker_object.num_of_iters_to_update_relics_substate = 120*3600/2  # That means the pandasdf info gets saved every half an hour
-    worker_object.relic_create_parameters_df(visualisation_on=vis.visualisation_on,
+    #worker_object.num_of_iters_to_update_savenodestate_substate = 120*3600/2  # That means the pandasdf info gets saved every half an hour
+    worker_object.savenodestate_create_parameters_df(visualisation_on=vis.visualisation_on,
                                              camera_index=cam_index, trigger_mode=trigger,
                                              pixel_format=pixel_format, fps=fps)
     worker_object.initialised = True
@@ -316,7 +317,7 @@ def run_spinnaker_camera(_worker_object):
             if vis.visualisation_on:
                 vis.visualised_data = data
 
-            worker_object.relic_update_substate_df(frame_id=frame_id, time_stamp=timestamp)
+            worker_object.savenodestate_update_substate_df(frame_id=frame_id, time_stamp=timestamp)
 
         try:
             vis.visualisation_on = worker_object.parameters[0]
